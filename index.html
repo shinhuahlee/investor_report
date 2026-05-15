@@ -521,20 +521,23 @@ const d30tbody = document.getElementById('daily30-tbody');
   });
   html += '</tbody></table>';
   document.getElementById('heatmap-container').innerHTML = html;
-  const pls     = HEATMAP.map(r => r.pl);
-  const mdds    = HEATMAP.map(r => r.mdd);
-  const sharpes = HEATMAP.map(r => r.sharpe).filter(v => v !== null);
-  const lossYrs = HEATMAP.filter(r => r.pl < 0).map(r => r.year);
+  const pls      = HEATMAP.map(r => r.pl);
+  const mdds     = HEATMAP.map(r => r.mdd);
+  const sharpes  = HEATMAP.map(r => r.sharpe).filter(v => v !== null);
+  const sortinos = HEATMAP.map(r => r.sortino).filter(v => v !== null);
+  const lossYrs  = HEATMAP.filter(r => r.pl < 0).map(r => r.year);
   const avgPl   = (pls.reduce((a,b) => a+b, 0) / pls.length).toFixed(1);
   const maxMdd  = Math.min(...mdds).toFixed(1);
-  const avgSh   = sharpes.length ? (sharpes.reduce((a,b)=>a+b,0)/sharpes.length).toFixed(2) : '–';
+  const avgSh   = sharpes.length  ? (sharpes.reduce((a,b)=>a+b,0)/sharpes.length).toFixed(2)  : '–';
+  const avgSo   = sortinos.length ? (sortinos.reduce((a,b)=>a+b,0)/sortinos.length).toFixed(2) : '–';
   document.getElementById('heatmap-summary').innerHTML = `
-    <div class="hm-stats">
-      <div class="hm-stat"><span class="hm-stat-lbl">每年平均損益</span><span class="hm-stat-val pos">${avgPl} 萬</span></div>
-      <div class="hm-stat"><span class="hm-stat-lbl">最大 MDD</span><span class="hm-stat-val neg">${maxMdd} 萬</span></div>
-      <div class="hm-stat"><span class="hm-stat-lbl">平均 Sharpe</span><span class="hm-stat-val neu">${avgSh}</span></div>
-      <div class="hm-stat"><span class="hm-stat-lbl">虧損年份</span><span class="hm-stat-val neg">${lossYrs.length ? lossYrs.join(', ') : '無'}</span></div>
-    </div>
+    <p style="margin-top:14px;font-size:13px;line-height:2;color:var(--ink)">
+      每年平均損益：<strong style="color:var(--green)">${avgPl} 萬</strong>　
+      最大 MDD：<strong style="color:var(--red)">${maxMdd} 萬</strong>　
+      平均 Sharpe：<strong style="color:var(--ink)">${avgSh}</strong>　
+      平均 Sortino：<strong style="color:var(--ink)">${avgSo}</strong>　
+      虧損年份：<strong style="color:var(--red)">${lossYrs.length ? lossYrs.join(', ') : '無'}</strong>
+    </p>
   `;
 })();
 </script>
