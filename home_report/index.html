@@ -264,6 +264,38 @@
     .hm-stat { padding: 8px 10px; min-width: 80px; }
     .hm-stat-val { font-size: 15px; }
   }
+
+  /* ── Pagination ── */
+  .pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 0 2px;
+  }
+  .pager button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    padding: 5px 16px;
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+  .pager button:hover:not(:disabled) { opacity: .8; }
+  .pager button:disabled {
+    background: var(--ink-20);
+    color: var(--ink-60);
+    cursor: default;
+  }
+  .pager .page-info {
+    font-size: 12px;
+    color: var(--ink-60);
+    min-width: 80px;
+    text-align: center;
+  }
 </style>
 </head>
 <body>
@@ -331,6 +363,11 @@
         <thead><tr id="daily60-thead-row"><th>日期</th><th>總損益</th></tr></thead>
         <tbody id="daily60-tbody"></tbody>
       </table>
+      <div class="pager">
+        <button id="daily60-prev">‹ 上頁</button>
+        <span class="page-info" id="daily60-page-info"></span>
+        <button id="daily60-next">下頁 ›</button>
+      </div>
     </div>
   </section>
 
@@ -480,18 +517,37 @@ Plotly.newPlot('chart-daily60', [{
   const symbols = Object.keys(DAILY60[0] || {}).filter(k => k !== 'date' && k !== 'total');
   const theadRow = document.getElementById('daily60-thead-row');
   theadRow.innerHTML = '<th>日期</th><th>總損益</th>' + symbols.map(s => `<th>${s}</th>`).join('');
-  const d60tbody = document.getElementById('daily60-tbody');
-  [...DAILY60].reverse().forEach(row => {
-    const totalCls = row.total >= 0 ? 'pos' : 'neg';
-    let cells = `<td>${row.date}</td>`;
-    cells += `<td class="${totalCls}">${row.total >= 0 ? '' : '-'}NT$${Math.abs(row.total).toLocaleString('zh-TW', { maximumFractionDigits: 0 })}</td>`;
-    symbols.forEach(s => {
-      const v = row[s] || 0;
-      const sCls = v > 0 ? 'pos' : v < 0 ? 'neg' : '';
-      cells += `<td class="${sCls}">${v !== 0 ? (v >= 0 ? '' : '-') + 'NT$' + Math.abs(v).toLocaleString('zh-TW', { maximumFractionDigits: 0 }) : '–'}</td>`;
-    });
-    d60tbody.innerHTML += `<tr>${cells}</tr>`;
-  });
+
+  const rows = [...DAILY60].reverse();
+  const PAGE_SIZE = 20;
+  let curPage = 0;
+  const totalPages = Math.ceil(rows.length / PAGE_SIZE);
+
+  function renderPage(page) {
+    const start = page * PAGE_SIZE;
+    const end = Math.min(start + PAGE_SIZE, rows.length);
+    let html = '';
+    for (let i = start; i < end; i++) {
+      const row = rows[i];
+      const totalCls = row.total >= 0 ? 'pos' : 'neg';
+      let cells = `<td>${row.date}</td>`;
+      cells += `<td class="${totalCls}">${row.total >= 0 ? '' : '-'}NT$${Math.abs(row.total).toLocaleString('zh-TW', { maximumFractionDigits: 0 })}</td>`;
+      symbols.forEach(s => {
+        const v = row[s] || 0;
+        const sCls = v > 0 ? 'pos' : v < 0 ? 'neg' : '';
+        cells += `<td class="${sCls}">${v !== 0 ? (v >= 0 ? '' : '-') + 'NT$' + Math.abs(v).toLocaleString('zh-TW', { maximumFractionDigits: 0 }) : '–'}</td>`;
+      });
+      html += `<tr>${cells}</tr>`;
+    }
+    document.getElementById('daily60-tbody').innerHTML = html;
+    document.getElementById('daily60-page-info').textContent = `第 ${page + 1} / ${totalPages} 頁`;
+    document.getElementById('daily60-prev').disabled = page === 0;
+    document.getElementById('daily60-next').disabled = page >= totalPages - 1;
+  }
+
+  document.getElementById('daily60-prev').addEventListener('click', () => { curPage--; renderPage(curPage); });
+  document.getElementById('daily60-next').addEventListener('click', () => { curPage++; renderPage(curPage); });
+  renderPage(0);
 })();
 
 // ── Heatmap ──────────────────────────────────────────────────────────────────
