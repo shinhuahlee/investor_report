@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>投組績效報告</title>
+<script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink:      #0f1923;
+    --ink-60:   #5a6472;
+    --ink-20:   #dce1e7;
+    --paper:    #f8f7f4;
+    --white:    #ffffff;
+    --accent:   #1a3c5e;
+    --accent2:  #c8922a;
+    --green:    #2a7c5e;
+    --red:      #c0392b;
+    --radius:   4px;
+    --shadow:   0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.05);
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  header {
+    background: var(--accent);
+    color: #fff;
+    padding: 48px 64px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    right: -80px; bottom: -80px;
+    width: 320px; height: 320px;
+    border-radius: 50%;
+    background: rgba(200,146,42,.15);
+    pointer-events: none;
+  }
+  header .eyebrow {
+    font-size: 11px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,.55);
+    margin-bottom: 10px;
+  }
+  header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(26px, 4vw, 42px);
+    font-weight: 400;
+    line-height: 1.15;
+    margin-bottom: 6px;
+  }
+  header .sub {
+    font-size: 13px;
+    color: rgba(255,255,255,.6);
+  }
+  header .date-badge {
+    position: absolute;
+    top: 48px; right: 64px;
+    font-size: 12px;
+    color: rgba(255,255,255,.55);
+    text-align: right;
+    line-height: 1.8;
+  }
+
+  main { max-width: 1200px; margin: 0 auto; padding: 48px 32px 80px; }
+  section { margin-bottom: 56px; }
+  section h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--accent);
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--ink-20);
+  }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+  .kpi {
+    background: var(--white);
+    border: 1px solid var(--ink-20);
+    border-radius: var(--radius);
+    padding: 20px 20px 16px;
+    box-shadow: var(--shadow);
+  }
+  .kpi .label {
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-60);
+    margin-bottom: 8px;
+  }
+  .kpi .value {
+    font-size: clamp(16px, 1.8vw, 24px);
+    font-weight: 600;
+    letter-spacing: -.5px;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  .kpi .value.pos { color: var(--green); }
+  .kpi .value.neg { color: var(--red); }
+  .kpi .value.neu { color: var(--ink); }
+  .kpi .sub-value {
+    font-size: 11px;
+    color: var(--ink-60);
+    margin-top: 6px;
+  }
+
+  .chart-card {
+    background: var(--white);
+    border: 1px solid var(--ink-20);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 24px 24px 16px;
+    margin-bottom: 20px;
+  }
+  .chart-card h3 {
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--ink-60);
+    margin-bottom: 16px;
+  }
+
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  thead tr {
+    background: var(--accent);
+    color: #fff;
+  }
+  th, td {
+    padding: 10px 16px;
+    text-align: right;
+    white-space: nowrap;
+  }
+  th:first-child, td:first-child { text-align: left; }
+  tbody tr:nth-child(even) { background: #f2f4f6; }
+  .pos { color: var(--green); font-weight: 500; }
+  .neg { color: var(--red); font-weight: 500; }
+
+  footer {
+    text-align: center;
+    font-size: 11px;
+    color: var(--ink-60);
+    padding: 24px;
+    border-top: 1px solid var(--ink-20);
+    margin-top: 32px;
+  }
+  footer strong { color: var(--accent); }
+
+  @media (max-width: 640px) {
+    header {
+      padding: 28px 20px 28px;
+    }
+    header .date-badge {
+      position: static;
+      text-align: left;
+      margin-top: 10px;
+      font-size: 11px;
+      color: rgba(255,255,255,.50);
+    }
+    main { padding: 20px 12px 60px; }
+    section { margin-bottom: 36px; }
+    section h2 { font-size: 18px; margin-bottom: 14px; }
+    .kpi-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .kpi { padding: 14px 12px 12px; }
+    .kpi .label { font-size: 10px; }
+    .kpi .value {
+      font-size: clamp(15px, 5vw, 22px);
+      white-space: normal;
+      word-break: break-word;
+    }
+    .kpi .sub-value { font-size: 10px; }
+    .chart-card { padding: 14px 10px 10px; }
+    .chart-card h3 { font-size: 11px; }
+    #chart-equity { height: 240px !important; }
+    #chart-dd     { height: 140px !important; }
+  }
+
+  /* ── Heatmap ── */
+  .hm-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .heatmap-tbl { border-collapse: collapse; font-size: 12px; white-space: nowrap; width: 100%; }
+  .hm-label-cell {
+    text-align: left;
+    padding: 8px 14px 8px 4px;
+    font-weight: 600;
+    font-size: 11px;
+    color: var(--ink-60);
+    background: var(--white);
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    border-right: 2px solid var(--ink-20);
+  }
+  .hm-year-cell {
+    text-align: center;
+    padding: 7px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--accent);
+    color: #fff;
+    min-width: 56px;
+  }
+  .hm-cell {
+    text-align: center;
+    padding: 7px 6px;
+    font-size: 12px;
+    font-weight: 500;
+    min-width: 56px;
+    border: 1px solid rgba(255,255,255,.35);
+  }
+  .hm-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 14px 0 4px;
+  }
+  .hm-stat {
+    display: flex;
+    flex-direction: column;
+    background: var(--paper);
+    border: 1px solid var(--ink-20);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    min-width: 90px;
+  }
+  .hm-stat-lbl {
+    font-size: 10px;
+    color: var(--ink-60);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 4px;
+  }
+  .hm-stat-val { font-size: 17px; font-weight: 600; }
+  @media (max-width: 640px) {
+    .hm-label-cell { font-size: 10px; padding: 5px 8px 5px 2px; }
+    .hm-cell { min-width: 40px; padding: 5px 2px; font-size: 11px; }
+    .hm-year-cell { min-width: 40px; padding: 5px 2px; font-size: 10px; }
+    .hm-stat { padding: 8px 10px; min-width: 80px; }
+    .hm-stat-val { font-size: 15px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <p class="eyebrow">量化策略</p>
+  <h1>投組績效報告</h1>
+  <p class="sub">多策略量化交易投資組合<br>總金額: 200 萬台幣</p>
+  <div class="date-badge">
+    產生日期<br><strong>2026-05-21</strong>
+  </div>
+</header>
+
+<main>
+  <section>
+    <h2>績效摘要</h2>
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="label">今年累計損益（台幣）</div>
+        <div class="value pos">NT$85.2萬</div>
+      </div>
+      <div class="kpi">
+        <div class="label">今年最大回撤</div>
+        <div class="value neg">-NT$26.5萬</div>
+      </div>
+      <div class="kpi">
+        <div class="label">今年 Sharpe 比率</div>
+        <div class="value neu">2.36</div>
+      </div>
+      <div class="kpi">
+        <div class="label">今年 Calmar 比率</div>
+        <div class="value neu">6.52</div>
+      </div>
+      <div class="kpi">
+        <div class="label">今年最長連續獲利天數</div>
+        <div class="value pos">6</div>
+      </div>
+      <div class="kpi">
+        <div class="label">今年最長連續虧損天數</div>
+        <div class="value neg">6</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>策略損益</h2>
+    <div class="chart-card">
+      <h3>累計損益 — 2026-01-01 至今</h3>
+      <div id="chart-equity" style="height:360px"></div>
+    </div>
+    <div class="chart-card">
+      <h3>回撤</h3>
+      <div id="chart-dd" style="height:200px"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>近 60 天每日損益</h2>
+    <div class="chart-card">
+      <h3>每日損益（台幣）</h3>
+      <div id="chart-daily60" style="height:220px"></div>
+    </div>
+    <div class="chart-card table-wrap">
+      <table id="daily60-table">
+        <thead><tr id="daily60-thead-row"><th>日期</th><th>總損益</th></tr></thead>
+        <tbody id="daily60-tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 歷年績效熱圖 -->
+  <section>
+    <h2>歷年損益分布 <span style="font-size:13px;font-weight:400;color:var(--ink-60);font-family:'DM Sans'">2020-01-01 ～ 2025-12-31</span></h2>
+    <div class="chart-card">
+      <div class="hm-wrap" id="heatmap-container"></div>
+      <div id="heatmap-summary"></div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <p><strong>投組績效報告</strong> &nbsp;|&nbsp; 本報告僅供專業投資人參閱 &nbsp;|&nbsp; 2026-05-21</p>
+  <p style="margin-top:6px">過去績效不代表未來獲利之保證。</p>
+</footer>
+
+<script>
+const EQUITY   = {"x": ["2026-01-01", "2026-01-02", "2026-01-03", "2026-01-04", "2026-01-05", "2026-01-06", "2026-01-07", "2026-01-08", "2026-01-09", "2026-01-10", "2026-01-11", "2026-01-12", "2026-01-13", "2026-01-14", "2026-01-15", "2026-01-16", "2026-01-17", "2026-01-18", "2026-01-19", "2026-01-20", "2026-01-21", "2026-01-22", "2026-01-23", "2026-01-24", "2026-01-25", "2026-01-26", "2026-01-27", "2026-01-28", "2026-01-29", "2026-01-30", "2026-01-31", "2026-02-01", "2026-02-02", "2026-02-03", "2026-02-04", "2026-02-05", "2026-02-06", "2026-02-07", "2026-02-08", "2026-02-09", "2026-02-10", "2026-02-11", "2026-02-12", "2026-02-13", "2026-02-14", "2026-02-15", "2026-02-16", "2026-02-17", "2026-02-18", "2026-02-19", "2026-02-20", "2026-02-21", "2026-02-22", "2026-02-23", "2026-02-24", "2026-02-25", "2026-02-26", "2026-02-27", "2026-02-28", "2026-03-01", "2026-03-02", "2026-03-03", "2026-03-04", "2026-03-05", "2026-03-06", "2026-03-07", "2026-03-08", "2026-03-09", "2026-03-10", "2026-03-11", "2026-03-12", "2026-03-13", "2026-03-14", "2026-03-15", "2026-03-16", "2026-03-17", "2026-03-18", "2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12", "2026-04-13", "2026-04-14", "2026-04-15", "2026-04-16", "2026-04-17", "2026-04-18", "2026-04-19", "2026-04-20", "2026-04-21", "2026-04-22", "2026-04-23", "2026-04-24", "2026-04-25", "2026-04-26", "2026-04-27", "2026-04-28", "2026-04-29", "2026-04-30", "2026-05-01", "2026-05-02", "2026-05-03", "2026-05-04", "2026-05-05", "2026-05-06", "2026-05-07", "2026-05-08", "2026-05-09", "2026-05-10", "2026-05-11", "2026-05-12", "2026-05-13", "2026-05-14", "2026-05-15", "2026-05-16", "2026-05-17", "2026-05-18", "2026-05-19", "2026-05-20", "2026-05-21"], "y": [26506.0, 76993.5, 133463.5, 135835.0, 196780.0, 218948.5, 181462.0, 159491.0, 189086.5, 188686.5, 176565.5, 203764.0, 195427.0, 164766.0, 221926.0, 198939.0, 199479.0, 199479.0, 209681.0, 172297.5, 167244.5, 184595.5, 173347.5, 167237.5, 167237.5, 198382.5, 277056.5, 285813.0, 210414.5, 199668.5, 195248.5, 195248.5, 234751.0, 222127.5, 205210.5, 167823.0, 215816.0, 221856.0, 218043.0, 230691.5, 253080.5, 300600.5, 323380.5, 310655.0, 310655.0, 309043.0, 303990.0, 303990.0, 303990.0, 299433.0, 287265.5, 287265.5, 287265.5, 277299.0, 411961.5, 490802.0, 454785.0, 412107.0, 412107.0, 412107.0, 392971.0, 361806.0, 370762.0, 332613.0, 296183.5, 306328.5, 306328.5, 356247.5, 377367.5, 327109.0, 310674.5, 300871.5, 285361.5, 287903.5, 286690.0, 295117.0, 241001.0, 251035.0, 243912.0, 248552.0, 248552.0, 257784.0, 270326.5, 272143.0, 249174.0, 247129.0, 244249.0, 247736.5, 238334.0, 268945.0, 282074.0, 273948.5, 265748.5, 265748.5, 266492.5, 248915.5, 277352.5, 255147.5, 312371.0, 308555.5, 268435.5, 268435.5, 314395.5, 477666.5, 578453.5, 530268.5, 603310.5, 544340.5, 544340.5, 551239.0, 552271.0, 611828.0, 576482.0, 737108.0, 789728.0, 807460.0, 723007.0, 668718.0, 611000.0, 681929.0, 761058.0, 761058.0, 778139.0, 746619.0, 923337.5, 1041524.5, 1039815.5, 1116001.5, 1098871.5, 1107396.5, 1073924.5, 1053184.0, 1058850.5, 1026438.5, 958973.5, 958843.5, 958735.0, 901899.5, 850625.5, 851845.5, 851845.5]};
+const DD       = {"x": ["2026-01-01", "2026-01-02", "2026-01-03", "2026-01-04", "2026-01-05", "2026-01-06", "2026-01-07", "2026-01-08", "2026-01-09", "2026-01-10", "2026-01-11", "2026-01-12", "2026-01-13", "2026-01-14", "2026-01-15", "2026-01-16", "2026-01-17", "2026-01-18", "2026-01-19", "2026-01-20", "2026-01-21", "2026-01-22", "2026-01-23", "2026-01-24", "2026-01-25", "2026-01-26", "2026-01-27", "2026-01-28", "2026-01-29", "2026-01-30", "2026-01-31", "2026-02-01", "2026-02-02", "2026-02-03", "2026-02-04", "2026-02-05", "2026-02-06", "2026-02-07", "2026-02-08", "2026-02-09", "2026-02-10", "2026-02-11", "2026-02-12", "2026-02-13", "2026-02-14", "2026-02-15", "2026-02-16", "2026-02-17", "2026-02-18", "2026-02-19", "2026-02-20", "2026-02-21", "2026-02-22", "2026-02-23", "2026-02-24", "2026-02-25", "2026-02-26", "2026-02-27", "2026-02-28", "2026-03-01", "2026-03-02", "2026-03-03", "2026-03-04", "2026-03-05", "2026-03-06", "2026-03-07", "2026-03-08", "2026-03-09", "2026-03-10", "2026-03-11", "2026-03-12", "2026-03-13", "2026-03-14", "2026-03-15", "2026-03-16", "2026-03-17", "2026-03-18", "2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12", "2026-04-13", "2026-04-14", "2026-04-15", "2026-04-16", "2026-04-17", "2026-04-18", "2026-04-19", "2026-04-20", "2026-04-21", "2026-04-22", "2026-04-23", "2026-04-24", "2026-04-25", "2026-04-26", "2026-04-27", "2026-04-28", "2026-04-29", "2026-04-30", "2026-05-01", "2026-05-02", "2026-05-03", "2026-05-04", "2026-05-05", "2026-05-06", "2026-05-07", "2026-05-08", "2026-05-09", "2026-05-10", "2026-05-11", "2026-05-12", "2026-05-13", "2026-05-14", "2026-05-15", "2026-05-16", "2026-05-17", "2026-05-18", "2026-05-19", "2026-05-20", "2026-05-21"], "y": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -37486.5, -59457.5, -29862.0, -30262.0, -42383.0, -15184.5, -23521.5, -54182.5, 0.0, -22987.0, -22447.0, -22447.0, -12245.0, -49628.5, -54681.5, -37330.5, -48578.5, -54688.5, -54688.5, -23543.5, 0.0, 0.0, -75398.5, -86144.5, -90564.5, -90564.5, -51062.0, -63685.5, -80602.5, -117990.0, -69997.0, -63957.0, -67770.0, -55121.5, -32732.5, 0.0, 0.0, -12725.5, -12725.5, -14337.5, -19390.5, -19390.5, -19390.5, -23947.5, -36115.0, -36115.0, -36115.0, -46081.5, 0.0, 0.0, -36017.0, -78695.0, -78695.0, -78695.0, -97831.0, -128996.0, -120040.0, -158189.0, -194618.5, -184473.5, -184473.5, -134554.5, -113434.5, -163693.0, -180127.5, -189930.5, -205440.5, -202898.5, -204112.0, -195685.0, -249801.0, -239767.0, -246890.0, -242250.0, -242250.0, -233018.0, -220475.5, -218659.0, -241628.0, -243673.0, -246553.0, -243065.5, -252468.0, -221857.0, -208728.0, -216853.5, -225053.5, -225053.5, -224309.5, -241886.5, -213449.5, -235654.5, -178431.0, -182246.5, -222366.5, -222366.5, -176406.5, -13135.5, 0.0, -48185.0, 0.0, -58970.0, -58970.0, -52071.5, -51039.5, 0.0, -35346.0, 0.0, 0.0, 0.0, -84453.0, -138742.0, -196460.0, -125531.0, -46402.0, -46402.0, -29321.0, -60841.0, 0.0, 0.0, -1709.0, 0.0, -17130.0, -8605.0, -42077.0, -62817.5, -57151.0, -89563.0, -157028.0, -157158.0, -157266.5, -214102.0, -265376.0, -264156.0, -264156.0]};
+const DAILY60  = [{"date": "2026-03-17", "total": 8427.0, "NQ": 19747.0, "TXF": -11320.0}, {"date": "2026-03-18", "total": -54116.0, "NQ": -51956.0, "TXF": -2160.0}, {"date": "2026-03-19", "total": 10034.0, "NQ": 434.0, "TXF": 9600.0}, {"date": "2026-03-20", "total": -7123.0, "NQ": -16213.0, "TXF": 9090.0}, {"date": "2026-03-21", "total": 4640.0, "NQ": 0.0, "TXF": 4640.0}, {"date": "2026-03-23", "total": 9232.0, "NQ": 17577.0, "TXF": -8345.0}, {"date": "2026-03-24", "total": 12542.0, "NQ": 232.0, "TXF": 12310.0}, {"date": "2026-03-25", "total": 1816.0, "NQ": -8324.0, "TXF": 10140.0}, {"date": "2026-03-26", "total": -22969.0, "NQ": -8649.0, "TXF": -14320.0}, {"date": "2026-03-27", "total": -2045.0, "NQ": 0.0, "TXF": -2045.0}, {"date": "2026-03-28", "total": -2880.0, "NQ": 0.0, "TXF": -2880.0}, {"date": "2026-03-29", "total": 3488.0, "NQ": 3488.0, "TXF": 0.0}, {"date": "2026-03-30", "total": -9402.0, "NQ": -7052.0, "TXF": -2350.0}, {"date": "2026-03-31", "total": 30611.0, "NQ": 45136.0, "TXF": -14525.0}, {"date": "2026-04-01", "total": 13129.0, "NQ": -2201.0, "TXF": 15330.0}, {"date": "2026-04-02", "total": -8126.0, "NQ": 18894.0, "TXF": -27020.0}, {"date": "2026-04-03", "total": -8200.0, "NQ": -6510.0, "TXF": -1690.0}, {"date": "2026-04-05", "total": 744.0, "NQ": 744.0, "TXF": 0.0}, {"date": "2026-04-06", "total": -17577.0, "NQ": -17577.0, "TXF": 0.0}, {"date": "2026-04-07", "total": 28437.0, "NQ": 27032.0, "TXF": 1405.0}, {"date": "2026-04-08", "total": -22205.0, "NQ": -13795.0, "TXF": -8410.0}, {"date": "2026-04-09", "total": 57224.0, "NQ": 39788.0, "TXF": 17435.0}, {"date": "2026-04-10", "total": -3816.0, "NQ": -43260.0, "TXF": 39445.0}, {"date": "2026-04-11", "total": -40120.0, "NQ": 0.0, "TXF": -40120.0}, {"date": "2026-04-13", "total": 45960.0, "NQ": 24180.0, "TXF": 21780.0}, {"date": "2026-04-14", "total": 163271.0, "NQ": 52111.0, "TXF": 111160.0}, {"date": "2026-04-15", "total": 100787.0, "NQ": 52142.0, "TXF": 48645.0}, {"date": "2026-04-16", "total": -48185.0, "NQ": -17515.0, "TXF": -30670.0}, {"date": "2026-04-17", "total": 73042.0, "NQ": 16802.0, "TXF": 56240.0}, {"date": "2026-04-18", "total": -58970.0, "NQ": 0.0, "TXF": -58970.0}, {"date": "2026-04-20", "total": 6898.0, "NQ": -1442.0, "TXF": 8340.0}, {"date": "2026-04-21", "total": 1032.0, "NQ": 217.0, "TXF": 815.0}, {"date": "2026-04-22", "total": 59557.0, "NQ": 1147.0, "TXF": 58410.0}, {"date": "2026-04-23", "total": -35346.0, "NQ": -12121.0, "TXF": -23225.0}, {"date": "2026-04-24", "total": 160626.0, "NQ": 39711.0, "TXF": 120915.0}, {"date": "2026-04-25", "total": 52620.0, "NQ": 0.0, "TXF": 52620.0}, {"date": "2026-04-26", "total": 17732.0, "NQ": 17732.0, "TXF": 0.0}, {"date": "2026-04-27", "total": -84453.0, "NQ": -16523.0, "TXF": -67930.0}, {"date": "2026-04-28", "total": -54289.0, "NQ": -32829.0, "TXF": -21460.0}, {"date": "2026-04-29", "total": -57718.0, "NQ": -60078.0, "TXF": 2360.0}, {"date": "2026-04-30", "total": 70929.0, "NQ": 48639.0, "TXF": 22290.0}, {"date": "2026-05-01", "total": 79129.0, "NQ": 42439.0, "TXF": 36690.0}, {"date": "2026-05-03", "total": 17081.0, "NQ": 17081.0, "TXF": 0.0}, {"date": "2026-05-04", "total": -31520.0, "NQ": -15810.0, "TXF": -15710.0}, {"date": "2026-05-05", "total": 176718.0, "NQ": 94348.0, "TXF": 82370.0}, {"date": "2026-05-06", "total": 118187.0, "NQ": 68727.0, "TXF": 49460.0}, {"date": "2026-05-07", "total": -1709.0, "NQ": 8246.0, "TXF": -9955.0}, {"date": "2026-05-08", "total": 76186.0, "NQ": 61256.0, "TXF": 14930.0}, {"date": "2026-05-09", "total": -17130.0, "NQ": 0.0, "TXF": -17130.0}, {"date": "2026-05-10", "total": 8525.0, "NQ": 8525.0, "TXF": 0.0}, {"date": "2026-05-11", "total": -33472.0, "NQ": -25637.0, "TXF": -7835.0}, {"date": "2026-05-12", "total": -20740.0, "NQ": -26520.0, "TXF": 5780.0}, {"date": "2026-05-13", "total": 5666.0, "NQ": 9966.0, "TXF": -4300.0}, {"date": "2026-05-14", "total": -32412.0, "NQ": -13082.0, "TXF": -19330.0}, {"date": "2026-05-15", "total": -67465.0, "NQ": -44485.0, "TXF": -22980.0}, {"date": "2026-05-16", "total": -130.0, "NQ": 0.0, "TXF": -130.0}, {"date": "2026-05-17", "total": -108.0, "NQ": -108.0, "TXF": 0.0}, {"date": "2026-05-18", "total": -56836.0, "NQ": -20166.0, "TXF": -36670.0}, {"date": "2026-05-19", "total": -51274.0, "NQ": -14074.0, "TXF": -37200.0}, {"date": "2026-05-20", "total": 1220.0, "NQ": 0.0, "TXF": 1220.0}];
+const HEATMAP  = [{"year": 2020, "pl": 168.9, "mdd": -27.0, "pl_mdd": 6.25, "sharpe": 2.39, "sortino": 3.84}, {"year": 2021, "pl": 150.9, "mdd": -16.9, "pl_mdd": 8.93, "sharpe": 2.76, "sortino": 4.87}, {"year": 2022, "pl": 27.9, "mdd": -27.1, "pl_mdd": 1.03, "sharpe": 0.49, "sortino": 0.91}, {"year": 2023, "pl": 110.7, "mdd": -30.5, "pl_mdd": 3.62, "sharpe": 2.02, "sortino": 3.82}, {"year": 2024, "pl": 146.6, "mdd": -18.8, "pl_mdd": 7.79, "sharpe": 2.34, "sortino": 4.58}, {"year": 2025, "pl": 152.6, "mdd": -17.8, "pl_mdd": 8.55, "sharpe": 2.64, "sortino": 4.71}];
+
+const ACCENT = '#1a3c5e';
+const GREEN  = '#2a7c5e';
+const RED    = '#c0392b';
+
+const baseLayout = {
+  font: { family: 'DM Sans, sans-serif', size: 12, color: '#0f1923' },
+  paper_bgcolor: 'rgba(0,0,0,0)',
+  plot_bgcolor: 'rgba(0,0,0,0)',
+  margin: { t: 8, b: 40, l: 90, r: 24 },
+  xaxis: { showgrid: false, zeroline: false, tickfont: { size: 11 } },
+  yaxis: {
+    gridcolor: '#dce1e7',
+    zeroline: true,
+    zerolinecolor: '#bbb',
+    tickfont: { size: 11 },
+    tickformat: ',.0f'
+  },
+  legend: {
+    bgcolor: 'rgba(0,0,0,0)',
+    font: { size: 11 },
+    orientation: 'h',
+    x: 0.5,
+    y: -0.18,
+    xanchor: 'center',
+    yanchor: 'top'
+  },
+  hovermode: 'x unified',
+};
+
+const cfg = { responsive: true, displayModeBar: false };
+
+const initMargin = window.innerWidth <= 640
+  ? { t: 6, b: 36, l: 58, r: 6 }
+  : { t: 8, b: 40, l: 90, r: 24 };
+
+(function () {
+  let peak = -Infinity;
+  const nhX = [], nhY = [];
+
+  EQUITY.x.forEach((d, i) => {
+    const v = EQUITY.y[i];
+    if (v > peak) {
+      peak = v;
+      nhX.push(d);
+      nhY.push(v);
+    }
+  });
+
+  Plotly.newPlot('chart-equity', [
+    {
+      x: EQUITY.x,
+      y: EQUITY.y,
+      type: 'scatter',
+      mode: 'lines',
+      name: '累計損益',
+      line: { color: ACCENT, width: 2 },
+      fill: 'tozeroy',
+      fillcolor: 'rgba(26,60,94,.07)',
+    },
+    {
+      x: nhX,
+      y: nhY,
+      type: 'scatter',
+      mode: 'markers',
+      name: '創新高',
+      marker: {
+        color: '#00e676',
+        size: 7,
+        symbol: 'circle',
+        line: { color: '#fff', width: 1.5 }
+      },
+      hovertemplate: '%{x}<br>NT$%{y:,.0f}<extra>創新高</extra>',
+    },
+  ], {
+    ...baseLayout,
+    margin: initMargin,
+    yaxis: { ...baseLayout.yaxis, tickprefix: 'NT$' },
+  }, cfg);
+})();
+
+Plotly.newPlot('chart-dd', [{
+  x: DD.x,
+  y: DD.y,
+  type: 'scatter',
+  mode: 'lines',
+  name: '回撤',
+  line: { color: RED, width: 1.5 },
+  fill: 'tozeroy',
+  fillcolor: 'rgba(192,57,43,.12)',
+}], {
+  ...baseLayout,
+  margin: initMargin,
+  yaxis: { ...baseLayout.yaxis, tickprefix: 'NT$' },
+}, cfg);
+
+window.addEventListener('resize', () => {
+  const m = window.innerWidth <= 640
+    ? { t: 6, b: 36, l: 58, r: 6 }
+    : { t: 8, b: 40, l: 90, r: 24 };
+
+  ['chart-equity', 'chart-dd', 'chart-daily60'].forEach(id => {
+    Plotly.relayout(id, { margin: m });
+  });
+});
+
+Plotly.newPlot('chart-daily60', [{
+  x: DAILY60.map(r => r.date),
+  y: DAILY60.map(r => r.total),
+  type: 'bar',
+  marker: {
+    color: DAILY60.map(r => r.total >= 0 ? GREEN : RED),
+    line: { color: '#fff', width: 0.5 }
+  },
+}], {
+  ...baseLayout,
+  margin: initMargin,
+  yaxis: { ...baseLayout.yaxis, tickprefix: 'NT$' },
+  bargap: 0.25,
+}, cfg);
+
+(function() {
+  const symbols = Object.keys(DAILY60[0] || {}).filter(k => k !== 'date' && k !== 'total');
+  const theadRow = document.getElementById('daily60-thead-row');
+  theadRow.innerHTML = '<th>日期</th><th>總損益</th>' + symbols.map(s => `<th>${s}</th>`).join('');
+  const d60tbody = document.getElementById('daily60-tbody');
+  [...DAILY60].reverse().forEach(row => {
+    const totalCls = row.total >= 0 ? 'pos' : 'neg';
+    let cells = `<td>${row.date}</td>`;
+    cells += `<td class="${totalCls}">${row.total >= 0 ? '' : '-'}NT$${Math.abs(row.total).toLocaleString('zh-TW', { maximumFractionDigits: 0 })}</td>`;
+    symbols.forEach(s => {
+      const v = row[s] || 0;
+      const sCls = v > 0 ? 'pos' : v < 0 ? 'neg' : '';
+      cells += `<td class="${sCls}">${v !== 0 ? (v >= 0 ? '' : '-') + 'NT$' + Math.abs(v).toLocaleString('zh-TW', { maximumFractionDigits: 0 }) : '–'}</td>`;
+    });
+    d60tbody.innerHTML += `<tr>${cells}</tr>`;
+  });
+})();
+
+// ── Heatmap ──────────────────────────────────────────────────────────────────
+(function() {
+  const metrics = [
+    { key: 'pl',      label: '年度損益(萬)',  higherBetter: true  },
+    { key: 'mdd',     label: 'MDD(萬)',        higherBetter: true  },
+    { key: 'pl_mdd',  label: '風報比',          higherBetter: true  },
+    { key: 'sharpe',  label: 'Sharpe',          higherBetter: true  },
+    { key: 'sortino', label: 'Sortino',         higherBetter: true  },
+  ];
+  function heatColor(val, min, max, higherBetter) {
+    if (val === null || isNaN(val)) return '#eef0f2';
+    let t = (max === min) ? 0.5 : (val - min) / (max - min);
+    if (!higherBetter) t = 1 - t;
+    t = Math.max(0, Math.min(1, t));
+    return `hsl(${Math.round(t * 120)}, 58%, 83%)`;
+  }
+  const years = HEATMAP.map(r => r.year);
+  let html = '<table class="heatmap-tbl"><thead><tr><th class="hm-label-cell"></th>';
+  years.forEach(y => { html += `<th class="hm-year-cell">${y}</th>`; });
+  html += '</tr></thead><tbody>';
+  metrics.forEach(m => {
+    const vals = HEATMAP.map(r => r[m.key]);
+    const valid = vals.filter(v => v !== null && !isNaN(v));
+    const minV = valid.length ? Math.min(...valid) : 0;
+    const maxV = valid.length ? Math.max(...valid) : 0;
+    const dec = (m.key === 'pl' || m.key === 'mdd') ? 1 : 2;
+    html += `<tr><td class="hm-label-cell">${m.label}</td>`;
+    vals.forEach(v => {
+      const bg  = heatColor(v, minV, maxV, m.higherBetter);
+      const txt = (v !== null && !isNaN(v)) ? v.toFixed(dec) : '–';
+      html += `<td class="hm-cell" style="background:${bg}">${txt}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('heatmap-container').innerHTML = html;
+  const pls      = HEATMAP.map(r => r.pl);
+  const mdds     = HEATMAP.map(r => r.mdd);
+  const sharpes  = HEATMAP.map(r => r.sharpe).filter(v => v !== null);
+  const sortinos = HEATMAP.map(r => r.sortino).filter(v => v !== null);
+  const lossYrs  = HEATMAP.filter(r => r.pl < 0).map(r => r.year);
+  const avgPl   = (pls.reduce((a,b) => a+b, 0) / pls.length).toFixed(1);
+  const maxMdd  = Math.min(...mdds).toFixed(1);
+  const avgSh   = sharpes.length  ? (sharpes.reduce((a,b)=>a+b,0)/sharpes.length).toFixed(2)  : '–';
+  const avgSo   = sortinos.length ? (sortinos.reduce((a,b)=>a+b,0)/sortinos.length).toFixed(2) : '–';
+  document.getElementById('heatmap-summary').innerHTML = `
+    <p style="margin-top:14px;font-size:13px;line-height:2;color:var(--ink)">
+      每年平均損益：<strong style="color:var(--green)">${avgPl} 萬</strong>　
+      最大 MDD：<strong style="color:var(--red)">${maxMdd} 萬</strong>　
+      平均 Sharpe：<strong style="color:var(--ink)">${avgSh}</strong>　
+      平均 Sortino：<strong style="color:var(--ink)">${avgSo}</strong>　
+      虧損年份：<strong style="color:var(--red)">${lossYrs.length ? lossYrs.join(', ') : '無'}</strong>
+    </p>
+  `;
+})();
+</script>
+</body>
+</html>
