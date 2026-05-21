@@ -519,7 +519,7 @@ Plotly.newPlot('chart-daily60', [{
   theadRow.innerHTML = '<th>日期</th><th>總損益</th>' + symbols.map(s => `<th>${s}</th>`).join('');
 
   const rows = [...DAILY60].reverse();
-  const PAGE_SIZE = 20;
+  const PAGE_SIZE = 30;
   let curPage = 0;
   const totalPages = Math.ceil(rows.length / PAGE_SIZE);
 
